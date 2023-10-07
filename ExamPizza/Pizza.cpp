@@ -4,10 +4,17 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
-#include <conio.h>
+#include <algorithm> 
+#include <conio.h> 
 
 Pizza::Pizza(const std::string& name, double basePizzaPrice) : pizzaName(name), basePizzaPrice(basePizzaPrice) {}
 
+char getCharacter()
+{
+    char input;
+    std::cin >> input;
+    return input;
+}
 void Pizza::addIngredient(const Ingredient& ingredient)
 {
     ingredients.push_back(ingredient);
@@ -46,8 +53,8 @@ void Menu::createPizza()
     double pizzaPrice;
     int numIngredients;
 
-    std::cout << "Enter pizza name: ";
     std::cin.ignore();
+    std::cout << "Enter pizza name: ";
     std::getline(std::cin, pizzaName);
     std::cout << "Enter pizza price: ";
     std::cin >> pizzaPrice;
@@ -63,8 +70,8 @@ void Menu::createPizza()
         float ingredientWeight;
         float ingredientPrice;
 
-        std::cout << "Enter ingredient name for ingredient " << (i + 1) << ": ";
         std::cin.ignore();
+        std::cout << "Enter ingredient name for ingredient " << (i + 1) << ": ";
         std::getline(std::cin, ingredientName);
         std::cout << "Enter ingredient weight (in grams) for ingredient " << (i + 1) << ": ";
         std::cin >> ingredientWeight;
@@ -81,15 +88,10 @@ void Menu::createPizza()
 
 void Menu::removePizza(const std::string& pizzaName)
 {
-    std::vector<Pizza> updatedPizzas;
-    for (const Pizza& pizza : pizzas)
-    {
-        if (pizza.getName() != pizzaName)
-        {
-            updatedPizzas.push_back(pizza);
-        }
-    }
-    pizzas = updatedPizzas;
+    pizzas.erase(
+        std::remove_if(pizzas.begin(), pizzas.end(),
+            [&pizzaName](const Pizza& pizza) { return pizza.getName() == pizzaName; }),
+        pizzas.end());
 }
 
 void Menu::addIngredient(const Ingredient& ingredient)
@@ -99,27 +101,23 @@ void Menu::addIngredient(const Ingredient& ingredient)
 
 bool Menu::ingredientExistsInMenu(const Ingredient& ingredientToCheck) const
 {
-    for (const Ingredient& ingredient : ingredients)
-    {
-        if (ingredient.getName() == ingredientToCheck.getName())
-        {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(ingredients.begin(), ingredients.end(),
+        [&ingredientToCheck](const Ingredient& ingredient) { return ingredient.getName() == ingredientToCheck.getName(); });
 }
 
-void Menu::addIngredientToMenu()
+void Menu::addIngredientToMenu(Ingredient& ingredient)
 {
     std::string ingredientName;
     float ingredientWeight;
     float ingredientPrice;
 
-    std::cout << "Enter ingredient name: ";
     std::cin.ignore();
+    std::cout << "Enter ingredient name: ";
     std::getline(std::cin, ingredientName);
+
     std::cout << "Enter ingredient weight (in grams): ";
     std::cin >> ingredientWeight;
+
     std::cout << "Enter ingredient price: ";
     std::cin >> ingredientPrice;
 
@@ -138,31 +136,22 @@ void Menu::addIngredientToMenu()
 
 void Menu::removeIngredient(const std::string& ingredientName)
 {
-    std::vector<Ingredient> updatedIngredients;
-    for (const Ingredient& ingredient : ingredients)
-    {
-        if (ingredient.getName() != ingredientName)
-        {
-            updatedIngredients.push_back(ingredient);
-        }
-    }
-    ingredients = updatedIngredients;
+    ingredients.erase(
+        std::remove_if(ingredients.begin(), ingredients.end(),
+            [&ingredientName](const Ingredient& ingredient) { return ingredient.getName() == ingredientName; }),
+        ingredients.end());
 }
 
 void Menu::editPizza(const std::string& pizzaName, const Pizza& newPizza)
 {
-    bool found = false;
-    for (Pizza& pizza : pizzas)
-    {
-        if (pizza.getName() == pizzaName)
-        {
-            pizza = newPizza;
-            found = true;
-            break;
-        }
-    }
+    auto pizzaToEdit = std::find_if(pizzas.begin(), pizzas.end(),
+        [&pizzaName](const Pizza& pizza) { return pizza.getName() == pizzaName; });
 
-    if (!found)
+    if (pizzaToEdit != pizzas.end())
+    {
+        *pizzaToEdit = newPizza;
+    }
+    else
     {
         throw std::invalid_argument("Pizza not found in the menu.");
     }
@@ -170,18 +159,14 @@ void Menu::editPizza(const std::string& pizzaName, const Pizza& newPizza)
 
 void Menu::editIngredient(const std::string& ingredientName, const Ingredient& newIngredient)
 {
-    bool found = false;
-    for (Ingredient& ingredient : ingredients)
-    {
-        if (ingredient.getName() == ingredientName)
-        {
-            ingredient = newIngredient;
-            found = true;
-            break;
-        }
-    }
+    auto ingredientToEdit = std::find_if(ingredients.begin(), ingredients.end(),
+        [&ingredientName](const Ingredient& ingredient) { return ingredient.getName() == ingredientName; });
 
-    if (!found)
+    if (ingredientToEdit != ingredients.end())
+    {
+        *ingredientToEdit = newIngredient;
+    }
+    else
     {
         throw std::invalid_argument("Ingredient not found in the menu.");
     }
@@ -195,11 +180,13 @@ void Menu::saveMenuToFile(const std::string& fileName) const
     {
         throw std::runtime_error("Error, file not open! " + fileName + " for write.");
     }
+
     file << "Ingredients: " << std::endl;
     for (const Ingredient& ingredient : ingredients)
     {
         file << ingredient.getName() << " " << ingredient.getWeight() << " " << ingredient.getPrice() << std::endl;
     }
+
     file << "Pizzas: " << std::endl;
     for (const Pizza& pizza : pizzas)
     {
@@ -211,6 +198,7 @@ void Menu::saveMenuToFile(const std::string& fileName) const
         }
         file << "-----------------------" << std::endl;
     }
+
     file.close();
     std::cout << "Menu saved successfully to file. " << fileName << std::endl;
 }
@@ -259,7 +247,6 @@ void Menu::loadMenuFromFile(const std::string& fileName)
             }
             else if (category == "Pizzas")
             {
-
                 std::string pizzaName = line;
 
                 double pizzaCost;
@@ -333,89 +320,16 @@ void Menu::viewIngredients() const
     }
 }
 
-void Menu::viewOrders() const
-{
-    if (orders.empty())
-    {
-        std::cout << " No orders in the menu." << std::endl;
-    }
-    else
-    {
-        std::cout << "List of Orders: " << std::endl;
-        for (const Order& order : orders)
-        {
-            order.displayOrderInfo();
-            std::cout << "--------------------------------" << std::endl;
-        }
-    }
-}
-
-Pizza Menu::findPizzaByIngredients(const std::vector<Ingredient>& requiredIngredients) const
-{
-    for (const Pizza& pizza : pizzas)
-    {
-        const std::vector<Ingredient>& pizzaIngredients = pizza.getIngredients();
-
-        bool allIngredientsFound = true;
-        for (const Ingredient& requiredIngredient : requiredIngredients)
-        {
-            bool ingredientFound = false;
-            for (const Ingredient& pizzaIngredient : pizzaIngredients)
-            {
-                if (requiredIngredient.getName() == pizzaIngredient.getName())
-                {
-                    ingredientFound = true;
-                    break;
-                }
-            }
-            if (!ingredientFound)
-            {
-                allIngredientsFound = false;
-                break;
-            }
-        }
-        if (allIngredientsFound)
-        {
-            return pizza;
-        }
-    }
-    return Pizza("No Match", 0.0);
-}
-
-class Order {
-public:
-    Order(const Pizza& pizza, int quantity) : pizza(pizza), quantity(quantity) {}
-
-    const Pizza& getPizza() const {
-        return pizza;
-    }
-
-    int getQuantity() const {
-        return quantity;
-    }
-
-    double getTotalCost() const {
-        return pizza.calculateCost() * quantity;
-    }
-
-    void displayOrderInfo() const {
-        std::cout << "Pizza: " << pizza.getName() << std::endl;
-        std::cout << "Quantity: " << quantity << std::endl;
-        std::cout << "Total Cost: " << getTotalCost() << std::endl;
-    }
-
-private:
-    const Pizza& pizza;
-    int quantity;
-};
+Order::Order(const Pizza& pizza, int quantity) : pizza(pizza), quantity(quantity) {}
 
 void Menu::createOrder()
 {
     std::string pizzaName;
     int quantity;
 
-    std::cout << "Enter pizza name for the order: ";
     std::cin.ignore();
+
+    std::cout << "Enter pizza name for the order: ";
     std::getline(std::cin, pizzaName);
 
     std::cout << "Enter quantity for the order: ";
@@ -442,9 +356,11 @@ void Menu::createOrder()
     }
 }
 
-void Menu::showMainMenu() {
+void Menu::showMainMenu()
+{
     char choice;
-    while (true) {
+    while (true)
+    {
         system("cls");
         std::cout << "Main Menu" << std::endl;
         std::cout << "1. View Pizzas" << std::endl;
@@ -458,7 +374,8 @@ void Menu::showMainMenu() {
         std::cout << "Enter your choice: ";
 
         choice = _getch();
-        switch (choice) {
+        switch (choice)
+        {
         case '1':
             viewPizzas();
             break;
@@ -469,8 +386,11 @@ void Menu::showMainMenu() {
             createPizza();
             break;
         case '4':
-            addIngredientToMenu();
+        {
+            Ingredient newIngredient; 
+            addIngredientToMenu(newIngredient); 
             break;
+        }
         case '5':
             createOrder();
             break;
@@ -481,7 +401,7 @@ void Menu::showMainMenu() {
             saveMenuToFile("menu.txt");
             break;
         case '8':
-            return;
+            return; 
         default:
             std::cout << "Invalid choice. Press any key to continue...";
             _getch();
@@ -489,15 +409,18 @@ void Menu::showMainMenu() {
     }
 }
 
-int main() {
+int main()
+{
     Menu menu;
 
-    try {
+    try
+    {
         menu.loadMenuFromFile("menu.txt");
         menu.showMainMenu();
         menu.saveMenuToFile("menu.txt");
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         std::cerr << "Error: " << e.what() << std::endl;
     }
 
