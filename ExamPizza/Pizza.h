@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <iostream>
 
 class Ingredient
 {
@@ -16,35 +15,13 @@ public:
     Ingredient() : name("no name"), weight(0.0), price(0.0) {}
     Ingredient(const std::string& name, float weight, float price) : name(name), weight(weight), price(price) {}
 
-    std::string getName() const
-    {
-        return name;
-    }
+    std::string getName() const;
+    float getWeight() const;
+    float getPrice() const;
 
-    float getWeight() const
-    {
-        return weight;
-    }
-
-    float getPrice() const
-    {
-        return price;
-    }
-
-    void setName(const std::string& _name)
-    {
-        name = _name;
-    }
-
-    void setWeight(float _weight)
-    {
-        weight = _weight;
-    }
-
-    void setPrice(float _price)
-    {
-        price = _price;
-    }
+    void setName(const std::string& _name);
+    void setWeight(float _weight);
+    void setPrice(float _price);
 };
 
 class Pizza
@@ -57,15 +34,8 @@ private:
 public:
     Pizza(const std::string& name = "", double basePizzaPrice = 0.0);
 
-    std::string getName() const
-    {
-        return pizzaName;
-    }
-
-    const std::vector<Ingredient>& getIngredients() const
-    {
-        return ingredients;
-    }
+    std::string getName() const;
+    const std::vector<Ingredient>& getIngredients() const;
 
     void addIngredient(const Ingredient& ingredient);
     double calculateCost() const;
@@ -86,6 +56,8 @@ public:
         Pizza(name, basePrice) {}
 };
 
+class Order;  // Forward declaration
+
 class Menu
 {
 private:
@@ -95,7 +67,7 @@ private:
 public:
     void addPizza(const Pizza& pizza);
     void createPizza();
-    void addIngredientToMenu(const std::string& pizzaName, const Ingredient& ingredient);
+    void addIngredientToMenu(Ingredient& ingredient);
     bool ingredientExistsInMenu(const Ingredient& ingredientToCheck) const;
     void removePizza(const std::string& pizzaName);
     void addIngredient(const Ingredient& ingredient);
@@ -107,7 +79,7 @@ public:
     void loadMenuFromFile(const std::string& fileName);
     void viewPizzas() const;
     void viewIngredients() const;
-    void  viewOrders() const;
+    void viewOrders();
     void showMainMenu();
     Pizza findPizzaByIngredients(const std::vector<Ingredient>& ingredients) const;
 };
@@ -116,11 +88,12 @@ class Order
 {
 private:
     std::vector<Pizza> pizzasOrdered;
+
 public:
     void addPizzaToOrder(const Pizza& pizza);
     void removePizzaFromOrder(const std::string& pizzaName);
     double calculateTotalCost() const;
-    void createOrder();
+    void displayOrderInfo() const;
 };
 
 class Payment
@@ -155,6 +128,24 @@ public:
     Client(const std::string& _name = "", const std::string& _address = "");
     void placeOrder(const Order& order);
     const std::vector<Order>& getOrderHistory() const;
+};
+
+class Order {
+public:
+    Order(const Pizza& _pizza, int _quantity) : pizza(_pizza), quantity(_quantity) {}
+
+    const Pizza& getPizza() const { return pizza; }
+    int getQuantity() const { return quantity; }
+    double getTotalCost() const { return pizza.calculateCost() * quantity; }
+    void displayOrderInfo() const {
+        std::cout << "Pizza: " << pizza.getName() << std::endl;
+        std::cout << "Quantity: " << quantity << std::endl;
+        std::cout << "Total Cost: " << getTotalCost() << std::endl;
+    }
+
+private:
+    const Pizza& pizza;
+    int quantity;
 };
 
 class FileManager
